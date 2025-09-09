@@ -13,7 +13,10 @@ class SmallNet(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x):
-        return self.relu(self.linear(x))
+        #return self.linear(self.linear(x)) #f1
+        #return self.linear(self.relu(self.linear(x))) #f2
+        return self.relu(self.linear(self.relu(self.linear(x)))) #f3
+        
 
 
 # X = torch.eye(3)
@@ -49,60 +52,107 @@ from muon import MuonClip, MuonConfig
 muon_config = MuonConfig(muon_lr=0.05,better_ortho=False,ns_steps=5,enable_clipping=False,log_dir="")
 optim_muon = MuonClip(net_muon, {}, muon_config)
 
-
 basis = torch.eye(3)
 traj_adam = []
 traj_muon = []
 sims_adam = []
 sims_muon = []
+cumulative_adam_delta_angle = [0.0]
+cumulative_muon_delta_angle = [0.0]
+
 import itertools
 for step in range(1000):
-
+    old_adam_direction = net_adam.linear.weight.clone().T
     optim_adam.zero_grad()
     loss_adam = ((net_adam(X) - y)**2).mean()
     loss_adam.backward()
     optim_adam.step()
     with torch.no_grad():
-        transformed = net_adam.linear.weight @ basis.T 
+        transformed = net_adam.linear.weight @ basis 
         V = transformed.T                             
         traj_adam.append(V.numpy())
 
         mean_theta = 0.0
-        for (i, j) in itertools.combinations(range(3), 2):
-            vi, vj = V[:, i], V[:, j]
+        # for (i, j) in itertools.combinations(range(3), 2):
+        #     vi, vj = V[:, i], V[:, j]
+        #     cos_sim = torch.dot(vi, vj) / (vi.norm() * vj.norm() + 1e-12)
+        #     theta = torch.acos(torch.clamp(cos_sim, -1.0, 1.0)) * 180.0 / torch.pi
+        #     mean_theta += theta.item() 
+        # sims_adam.append(mean_theta / 3.0)
+        for i in range(3):
+            vi, vj = V[:, i], old_adam_direction[:, i]
             cos_sim = torch.dot(vi, vj) / (vi.norm() * vj.norm() + 1e-12)
             theta = torch.acos(torch.clamp(cos_sim, -1.0, 1.0)) * 180.0 / torch.pi
-            mean_theta += theta.item() 
-        sims_adam.append(mean_theta / 3.0)
+            cumulative_adam_delta_angle.append(cumulative_adam_delta_angle[-1]+theta.item()) 
+        
 
+    old_muon_direction = net_muon.linear.weight.clone().T
     optim_muon.zero_grad()
     loss_muon = ((net_muon(X) - y)**2).mean()
     loss_muon.backward()
     optim_muon.step()
     with torch.no_grad():
-        transformed = net_muon.linear.weight @ basis.T
+        transformed = net_muon.linear.weight @ basis 
         V = transformed.T                             
         traj_muon.append(V.numpy())
 
-        mean_theta = 0.0
-        for (i, j) in itertools.combinations(range(3), 2):
-            vi, vj = V[:, i], V[:, j]
+        # mean_theta = 0.0
+        # for (i, j) in itertools.combinations(range(3), 2):
+        #     vi, vj = V[:, i], V[:, j]
+        #     cos_sim = torch.dot(vi, vj) / (vi.norm() * vj.norm() + 1e-12)
+        #     theta = torch.acos(torch.clamp(cos_sim, -1.0, 1.0)) * 180.0 / torch.pi
+        #     mean_theta += theta.item()  
+        # sims_muon.append(mean_theta / 3.0)
+        for i in range(3):
+            vi, vj = V[:, i], old_muon_direction[:, i]
             cos_sim = torch.dot(vi, vj) / (vi.norm() * vj.norm() + 1e-12)
             theta = torch.acos(torch.clamp(cos_sim, -1.0, 1.0)) * 180.0 / torch.pi
-            mean_theta += theta.item()  
-        sims_muon.append(mean_theta / 3.0)
+            cumulative_muon_delta_angle.append(cumulative_muon_delta_angle[-1]+theta.item())
 
+print("Cumulative Adam delta angle:", cumulative_adam_delta_angle[-1])
+print("Cumulative Muon delta angle:", cumulative_muon_delta_angle[-1])
+import numpy as np
+import pickle
+import matplotlib.pyplot as plt
+import glob
 
-# plot similarities
+# récupérer tous les fichiers
+files = sorted(glob.glob("results_run*.pkl"))
+
 plt.figure(figsize=(8,5))
-plt.plot(sims_adam, label="Adam", color="blue")
-plt.plot(sims_muon, label="Muon", color="orange")
+
+# choisir un colormap avec autant de couleurs que de runs
+colors = plt.cm.tab10(np.linspace(0, 1, len(files)))
+
+for idx, fname in enumerate(files):
+    with open(fname, "rb") as f:
+        data = pickle.load(f)
+    
+    color = colors[idx]
+    run_id = fname.replace(".pkl", "")
+
+    # Muon (ligne pleine)
+    plt.plot(data["muon"], linestyle="-", color=color, label=fr"Muon $f_{{\theta_{{{idx+1}}}}}$")
+    # Adam (ligne pointillée)
+    plt.plot(data["adam"], linestyle="--", color=color, label=fr"Adam $f_{{\theta_{{{idx+1}}}}}$")
+
 plt.xlabel("Training step")
-plt.ylabel("Mean angle (degrees)")
+plt.ylabel(r"Log cumulative $\Delta$ angle (degrees)")
 plt.legend()
 plt.grid()
-plt.savefig("similarities.png", dpi=150)
+plt.savefig("cumulative_delta_angles_all.png", dpi=150)
 plt.close()
+
+# plot similarities
+# plt.figure(figsize=(8,5))
+# plt.plot(sims_adam, label="Adam", color="blue")
+# plt.plot(sims_muon, label="Muon", color="orange")
+# plt.xlabel("Training step")
+# plt.ylabel("Mean angle (degrees)")
+# plt.legend()
+# plt.grid()
+# plt.savefig("similarities.png", dpi=150)
+# plt.close()
 
 running_adam_loss = 0.0
 running_muon_loss = 0.0
@@ -134,7 +184,7 @@ def plot_trajectory(ax, traj, title):
     ax.set_zlim(-1.5, 1.5)
     ax.set_title(title)
 
-nb_frames = 50
+nb_frames = 100
 plot_trajectory(ax, traj_adam, "Adam")
 plot_trajectory(ax2, traj_muon, "Muon")
 
