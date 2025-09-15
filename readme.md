@@ -177,3 +177,23 @@ The visualizations highlight a clear difference in the exploration behavior of A
   3.  Implications
   • The higher exploration of Muon could help avoid premature convergence and improve generalization by encouraging the optimizer to sample a broader range of solutions.
   • Adam’s more conservative trajectory might be advantageous in smooth, well-conditioned settings, but it risks stagnation when the landscape is complex or highly anisotropic.
+
+
+# Installation
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/your-username/your-repo.git
+cd your-repo
+pip install -r requirements.txt
+```
+
+
+# How to Use
+
+## Training
+Run the following command to train both models (Adam and Muon) and save results:
+```bash
+python train_muon_vs_adam.py --mode train
+```
