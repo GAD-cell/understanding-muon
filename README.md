@@ -8,6 +8,7 @@ The code used for this part is available on GitHub: [Understanding Muon](https:/
 ## A Simple Illustrative Problem
 
 Consider a simple a function:  
+
 $$
 f : [0,1]^3 \longrightarrow \mathbb{R}^3, \quad
 f(x, y, z) =
@@ -118,28 +119,28 @@ Below is a visualization of how the linear layer matrix $M \in \mathbb{R}^{3 \ti
 <div align="center" style="border: 2px solid #333; padding: 10px; display: inline-block;">
 
   <figure style="margin: 20px 0;">
-    <img src="/blog_media/f1.png" alt="" style="width:90%; height:auto;">
+    <img src="/media/f1.png" alt="" style="width:90%; height:auto;">
       <figcaption style="font-size:14px; font-style:italic; margin-top:5px;">
     Case 1
   </figcaption>
   </figure>
 
   <figure style="margin: 20px 0;">
-    <img src="/blog_media/f2.png" alt="" style="width:90%; height:auto;">
+    <img src="/media/f2.png" alt="" style="width:90%; height:auto;">
   <figcaption style="font-size:14px; font-style:italic; margin-top:5px;">
     Case 2
   </figcaption>
   </figure>
 
   <figure style="margin: 20px 0;">
-    <img src="/blog_media/f3.png" alt="" style="width:90%; height:auto;">
+    <img src="/media/f3.png" alt="" style="width:90%; height:auto;">
   <figcaption style="font-size:14px; font-style:italic; margin-top:5px;">
     Case 3
   </figcaption>
   </figure>
 
   <figure style="margin: 20px 0;">
-    <img src="/blog_media/f4.png" alt="" style="width:90%; height:auto;">
+    <img src="/media/f4.png" alt="" style="width:90%; height:auto;">
   <figcaption style="font-size:14px; font-style:italic; margin-top:5px;">
     Case 4
   </figcaption>
@@ -159,7 +160,7 @@ $$
 
 Below is a representation of the $\Delta_{exploration}^T$ through the steps for all 4 cases (higher values means more exploration):
 <p align="center">
- <img src="/blog_media/cumulative_delta_angles_all.png" alt=""  style="width: 90%; height: auto;"><br>
+ <img src="/media/cumulative_delta_angles_all.png" alt=""  style="width: 90%; height: auto;"><br>
 </p>
 
 ## Discussion of Results
@@ -196,4 +197,21 @@ pip install -r requirements.txt
 Run the following command to train both models (Adam and Muon) and save results:
 ```bash
 python train_muon_vs_adam.py --mode train
+```
+## Training
+Run the following command to train both models (Adam and Muon) and save results:
+```bash
+python train_muon_vs_adam.py --mode train
+```
+## Evaluation
+```bash
+python train_muon_vs_adam.py --mode eval
+```
+## Plot trajectories
+```bash
+python train_muon_vs_adam.py --mode plot
+```
+## Generate animation frames
+```bash
+python train_muon_vs_adam.py --mode animate
 ```
